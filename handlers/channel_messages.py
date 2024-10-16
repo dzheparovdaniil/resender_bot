@@ -16,7 +16,7 @@ async def forward_channel_messages(message: types.Message):
         print(message.media_group_id)
         await bot.send_photo(chat_id=874188918, photo=message.photo[-1].file_id, caption=message.html_text, parse_mode='HTML', reply_markup=keyboard)
     elif message.photo and message.media_group_id != None:
-        await bot.send_message(chat_id=874188918, text='я тупой')
+        await bot.send_media_group(chat_id=874188918, media=message.media_group_id)
         print(message.media_group_id)
         #photos = [InputMediaPhoto(media=photo.file_id) for photo in message.photo[-1]]
         #await bot.send_media_group(chat_id=874188918, media=photos)
