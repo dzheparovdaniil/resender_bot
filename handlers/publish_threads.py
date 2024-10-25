@@ -1,18 +1,24 @@
-from aiogram import types
+from aiogram import types, F, Router
 from bot import bot
 from mistralai import Mistral
 from config import MISTRAL_API_KEY
+from aiogram.types import CallbackQuery
 
-async def publish_threads_post(callback_query: types.CallbackQuery):
-    message_link = callback_query.data.split(':')[1]
-    message_text = callback_query.message.text
+router_threads = Router()
+@router_threads.callback_query(F.data == 'publish_threads')
+async def publish_threads_post(callback: CallbackQuery):
+    print(callback.data)
+    if callback.message.caption:
+        message_text = callback.message.caption
+    else:
+        message_text = callback.message.text
     if len(message_text) > 490:
         text_thread = rewrite_message(message_text)
     else:
         text_thread = message_text
     await bot.send_message(chat_id=874188918, text='Пост для публикации в threads ⬇️')
-    await bot.send_message(chat_id=874188918, text=text_thread + '\n' + message_link)
-    await callback_query.answer("Пост опубликован в Threads")
+    await bot.send_message(chat_id=874188918, text=text_thread)
+    await callback.answer("Софрмирован пост для публикации в Threads")
 
 def rewrite_message(message):
     api_key = MISTRAL_API_KEY
