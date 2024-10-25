@@ -17,4 +17,7 @@ async def forward_channel_messages(message: types.Message):
         photos[key].append(message.photo[-1].file_unique_id)
 
 async def send_echo(message: types.Message):
-    await message.reply(message.html_text, parse_mode='HTML')
+    if message.photo:
+        await message.answer_photo(photo=message.photo[-1].file_id, caption = message.caption, parse_mode='HTML', reply_markup=post_keyboard)
+    else:
+        await message.answer(message.html_text, parse_mode='HTML', reply_markup=post_keyboard)
