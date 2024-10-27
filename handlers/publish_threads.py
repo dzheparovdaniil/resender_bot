@@ -1,13 +1,19 @@
 from aiogram import types, F, Router
 from bot import bot
 from mistralai import Mistral
-from config import MISTRAL_API_KEY
+from config import MISTRAL_API_KEY, THREADS_ACCESS_TOKEN
 from aiogram.types import CallbackQuery
+import requests as r
+import json
+import boto3
+
+
+session = boto3.session.Session()
+s3 = session.client(service_name='s3',endpoint_url='https://storage.yandexcloud.net')
 
 router_threads = Router()
 @router_threads.callback_query(F.data == 'publish_threads')
 async def publish_threads_post(callback: CallbackQuery):
-    print(callback.data)
     if callback.message.caption:
         message_text = callback.message.caption
     else:
@@ -16,6 +22,23 @@ async def publish_threads_post(callback: CallbackQuery):
         text_thread = rewrite_message(message_text)
     else:
         text_thread = message_text
+
+    if callback.message.caption:
+        print('в посте есть фото')
+        file_id = callback.message.photo[-1].file_id
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        # Скачиваем файл
+        destination = f"{file_id}.jpg"
+        await bot.download_file(file_path, destination)
+        s3.upload_file(destination, 'resenderbot-media', destination)
+        photo_link = 'https://storage.yandexcloud.net/resenderbot-media/' + destination
+        photo_id = photo_container(text_thread, photo_link)
+        post_thread(photo_id)
+
+    else:
+        text_id = text_container(text_thread)
+        post_thread(text_id)
     await bot.send_message(chat_id=874188918, text='Пост для публикации в threads ⬇️')
     await bot.send_message(chat_id=874188918, text=text_thread)
     await callback.answer("Софрмирован пост для публикации в Threads")
@@ -40,3 +63,34 @@ def rewrite_message(message):
         ]
     )
     return chat_response.choices[0].message.content
+
+
+def text_container(message):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {THREADS_ACCESS_TOKEN}'
+    }
+
+    response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=TEXT', headers=headers)
+    response_data = json.loads(response.text)
+    return response_data['id']
+
+def photo_container(message, message_url):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {THREADS_ACCESS_TOKEN}'
+    }
+
+    response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=IMAGE&image_url={message_url}', headers=headers)
+    response_data = json.loads(response.text)
+    return response_data['id']
+
+
+def post_thread(container_id):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {THREADS_ACCESS_TOKEN}'
+    }
+
+    response = r.post(f'https://graph.threads.net/me/threads_publish?creation_id={container_id}', headers=headers)
+    return response
