@@ -22,7 +22,6 @@ async def publish_vk_post(callback: CallbackQuery):
             # Скачиваем файл
             destination = f"{file_id}.jpg"
             await bot.download_file(file_path, destination)
-            #file_name = 
             photo_id, owner_id = upload_photo_vk(vk, destination, VK_GROUP_ID)
             if callback.message.caption != None:
                 vk_post = vk.wall.post(owner_id=-int(VK_GROUP_ID), message = callback.message.caption, attachments=f'photo{owner_id}_{photo_id}', from_group=1)

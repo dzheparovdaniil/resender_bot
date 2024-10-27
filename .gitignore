@@ -1,3 +1,5 @@
 todo.txt
 .env
 .venv
+handlers/__pycache__
+__pycache__

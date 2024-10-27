@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery
 import requests as r
 import json
 import boto3
-
+import os
 
 session = boto3.session.Session()
 s3 = session.client(service_name='s3',endpoint_url='https://storage.yandexcloud.net')
@@ -29,13 +29,18 @@ async def publish_threads_post(callback: CallbackQuery):
         file = await bot.get_file(file_id)
         file_path = file.file_path
         # Скачиваем файл
+        print('скачиваем файл')
         destination = f"{file_id}.jpg"
         await bot.download_file(file_path, destination)
         s3.upload_file(destination, 'resenderbot-media', destination)
+        print('загрузили файл в S3')
         photo_link = 'https://storage.yandexcloud.net/resenderbot-media/' + destination
+        print('загрузили файл в S3: ', photo_link)
         photo_id = photo_container(text_thread, photo_link)
+        print('сформировали контейнер медиа: ', photo_id)
         post_thread(photo_id)
-
+        print('отправили пост в threads')
+        os.remove(destination)
     else:
         text_id = text_container(text_thread)
         post_thread(text_id)
