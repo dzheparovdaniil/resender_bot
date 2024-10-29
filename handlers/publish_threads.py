@@ -7,13 +7,15 @@ import requests as r
 import json
 import boto3
 import os
+from keyboard import keyborad_threads
 
 session = boto3.session.Session()
 s3 = session.client(service_name='s3',endpoint_url='https://storage.yandexcloud.net')
 
 router_threads = Router()
-@router_threads.callback_query(F.data == 'publish_threads')
-async def publish_threads_post(callback: CallbackQuery):
+
+@router_threads.callback_query(F.data == 'prepare_threads')
+async def prepare_threads_post(callback: CallbackQuery):
     if callback.message.caption:
         message_text = callback.message.caption
     else:
@@ -22,6 +24,30 @@ async def publish_threads_post(callback: CallbackQuery):
         text_thread = rewrite_message(message_text)
     else:
         text_thread = message_text
+    await callback.answer('')
+    await bot.send_message(chat_id=874188918, text='Сформируем пост для публикации в Threads')
+    if callback.message.photo:
+        await bot.send_photo(chat_id=874188918, caption=text_thread, photo=callback.message.photo[-1].file_id, reply_markup=keyborad_threads)
+    else:
+        await bot.send_message(chat_id=874188918, text=text_thread, reply_markup=keyborad_threads)
+
+
+@router_threads.callback_query(F.data == 'rewrite_message')
+async def prepare_threads_post(callback: CallbackQuery):
+    if callback.message.photo:
+        rewrite_text = rewrite_message(callback.message.caption)
+        await callback.message.edit_caption(caption=rewrite_text, reply_markup=keyborad_threads)
+    else:
+        rewrite_text = rewrite_message(callback.message.text)
+        await callback.message.edit_text(text=rewrite_text, reply_markup=keyborad_threads)
+
+
+@router_threads.callback_query(F.data == 'publish_threads')
+async def publish_threads_post(callback: CallbackQuery):
+    if callback.message.caption:
+        text_thread = callback.message.caption
+    else:
+        text_thread = callback.message.text
 
     if callback.message.caption:
         print('в посте есть фото')
@@ -43,31 +69,39 @@ async def publish_threads_post(callback: CallbackQuery):
         os.remove(destination)
     else:
         text_id = text_container(text_thread)
+        print(text_id)
         post_thread(text_id)
-    await bot.send_message(chat_id=874188918, text='Пост для публикации в threads ⬇️')
-    await bot.send_message(chat_id=874188918, text=text_thread)
-    await callback.answer("Софрмирован пост для публикации в Threads")
+    await callback.answer("Пост опубликован в Threads")
 
 def rewrite_message(message):
     api_key = MISTRAL_API_KEY
-    model = "mistral-large-latest"
+    model = "open-mistral-nemo-2407"
 
     client = Mistral(api_key=api_key)
 
     chat_response = client.chat.complete(
         model=model,
+        temperature=0.7,
         messages=[
             {
-                "role": "user",
-                "content": f"""сделай краткий пересказ сообщения для другой социальной сети 
-                            от 50 до 490 символов в зависимости от содержания. 
-                            сообщение обязательно должно быть не длиннее 490 символов!
-                            твоя задача заинтересовать читателя и передать основную суть исходного сообщения. 
-                            {message}""",
-            },
+  "role": "user",
+  "content": f"""
+    you are a copywriter. summarize the message in 490 characters or less. provide only the summary. make it in Russian.
+    do not rephrase narrator's face. 
+{message}"""
+}, 
+{
+"role": "user",
+  "content": f"""
+    ## Summarize:
+    In clear and concise language, summarize the key points and themes presented in your answer.
+    if the number is greater than 490, summarize the message in 490 characters or less. do not rephrase narrator's face.
+    """
+}
         ]
     )
     return chat_response.choices[0].message.content
+
 
 
 def text_container(message):
@@ -75,9 +109,13 @@ def text_container(message):
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {THREADS_ACCESS_TOKEN}'
     }
-
-    response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=TEXT', headers=headers)
-    response_data = json.loads(response.text)
+    try:
+        response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=TEXT', headers=headers)
+        print(response)
+        print(response.text)
+        response_data = json.loads(response.text)
+    except Exception as e:
+        print(e)
     return response_data['id']
 
 def photo_container(message, message_url):
