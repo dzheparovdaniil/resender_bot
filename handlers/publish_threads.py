@@ -50,26 +50,19 @@ async def publish_threads_post(callback: CallbackQuery):
         text_thread = callback.message.text
 
     if callback.message.caption:
-        print('в посте есть фото')
         file_id = callback.message.photo[-1].file_id
         file = await bot.get_file(file_id)
         file_path = file.file_path
         # Скачиваем файл
-        print('скачиваем файл')
         destination = f"{file_id}.jpg"
         await bot.download_file(file_path, destination)
         s3.upload_file(destination, 'resenderbot-media', destination)
-        print('загрузили файл в S3')
         photo_link = 'https://storage.yandexcloud.net/resenderbot-media/' + destination
-        print('загрузили файл в S3: ', photo_link)
         photo_id = photo_container(text_thread, photo_link)
-        print('сформировали контейнер медиа: ', photo_id)
         post_thread(photo_id)
-        print('отправили пост в threads')
         os.remove(destination)
     else:
         text_id = text_container(text_thread)
-        print(text_id)
         post_thread(text_id)
     await callback.answer("Пост опубликован в Threads")
 
