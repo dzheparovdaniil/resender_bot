@@ -111,13 +111,16 @@ def text_container(message):
         print(e)
     return response_data['id']
 
-def photo_container(message, message_url):
+def photo_container(message, message_url, is_carousel=False):
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {THREADS_ACCESS_TOKEN}'
     }
-
-    response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=IMAGE&image_url={message_url}', headers=headers)
+    if is_carousel:
+        is_carousel_param = '&is_carousel=true'
+    else:
+        is_carousel_param = ''
+    response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=IMAGE&image_url={message_url}{is_carousel_param}', headers=headers)
     response_data = json.loads(response.text)
     return response_data['id']
 
