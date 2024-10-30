@@ -8,6 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./ ./
 
-COPY /home/.aws /root/.aws
-
 CMD ["python3", "-u", "main.py"]
