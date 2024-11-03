@@ -8,6 +8,7 @@ from handlers.channel_messages import router_channel
 
 async def main():
     dp.include_router(router_channel)
+    dp.channel_post.register(forward_channel_messages)
     dp.include_router(router)
     dp.include_router(router_threads)
     dp.include_router(router_media)

@@ -16,6 +16,7 @@ s3 = session.client(service_name='s3',endpoint_url='https://storage.yandexcloud.
 @router_media.message(F.media_group_id)
 @media_group_handler()
 async def post_media_group(messages: list[Message]) -> None:
+          print('работает функция post_media_group')
           images = []
           images_links = []
           caption = ""
