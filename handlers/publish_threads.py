@@ -16,6 +16,7 @@ router_threads = Router()
 
 @router_threads.callback_query(F.data == 'prepare_threads')
 async def prepare_threads_post(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
     if callback.message.caption:
         message_text = callback.message.caption
     else:
@@ -25,11 +26,11 @@ async def prepare_threads_post(callback: CallbackQuery):
     else:
         text_thread = message_text
     await callback.answer('')
-    await bot.send_message(chat_id=874188918, text='Сформируем пост для публикации в Threads')
+    await bot.send_message(chat_id=chat_id, text='Сформируем пост для публикации в Threads')
     if callback.message.photo:
-        await bot.send_photo(chat_id=874188918, caption=text_thread, photo=callback.message.photo[-1].file_id, reply_markup=keyborad_threads)
+        await bot.send_photo(chat_id=chat_id, caption=text_thread, photo=callback.message.photo[-1].file_id, reply_markup=keyborad_threads)
     else:
-        await bot.send_message(chat_id=874188918, text=text_thread, reply_markup=keyborad_threads)
+        await bot.send_message(chat_id=chat_id, text=text_thread, reply_markup=keyborad_threads)
 
 
 @router_threads.callback_query(F.data == 'rewrite_message')
@@ -68,28 +69,18 @@ async def publish_threads_post(callback: CallbackQuery):
 
 def rewrite_message(message):
     api_key = MISTRAL_API_KEY
-    model = "open-mistral-nemo-2407"
+    model = "mistral-large-latest"
 
     client = Mistral(api_key=api_key)
 
     chat_response = client.chat.complete(
         model=model,
-        temperature=0.7,
         messages=[
             {
   "role": "user",
   "content": f"""
-    you are a copywriter. summarize the message in 490 characters or less. provide only the summary. make it in Russian.
-    do not rephrase narrator's face. 
+    ты автор написанного поста. сделай краткий пересказ поста от 50 до 450 символов.
 {message}"""
-}, 
-{
-"role": "user",
-  "content": f"""
-    ## Summarize:
-    In clear and concise language, summarize the key points and themes presented in your answer.
-    if the number is greater than 490, summarize the message in 490 characters or less. do not rephrase narrator's face.
-    """
 }
         ]
     )
@@ -104,8 +95,6 @@ def text_container(message):
     }
     try:
         response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=TEXT', headers=headers)
-        print(response)
-        print(response.text)
         response_data = json.loads(response.text)
     except Exception as e:
         print(e)
