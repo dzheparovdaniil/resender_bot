@@ -21,6 +21,6 @@ async def forward_channel_messages(message: types.Message):
 @router_channel.message(F.media_group_id == None)
 async def send_echo(message: types.Message):
     if message.photo:
-        await message.answer_photo(photo=message.photo[-1].file_id, caption = message.caption, parse_mode='HTML', reply_markup=post_keyboard)
+        await message.answer_photo(photo=message.photo[-1].file_id, caption = message.caption, parse_mode='HTML', reply_markup=post_keyboard_inst)
     else:
         await message.answer(message.html_text, parse_mode='HTML', reply_markup=post_keyboard)
