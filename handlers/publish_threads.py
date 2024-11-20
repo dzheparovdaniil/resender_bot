@@ -45,27 +45,33 @@ async def prepare_threads_post(callback: CallbackQuery):
 
 @router_threads.callback_query(F.data == 'publish_threads')
 async def publish_threads_post(callback: CallbackQuery):
-    if callback.message.caption:
-        text_thread = callback.message.caption
-    else:
-        text_thread = callback.message.text
+    try:
+        if callback.message.caption:
+            text_thread = callback.message.caption
+        else:
+            text_thread = callback.message.text
 
-    if callback.message.caption:
-        file_id = callback.message.photo[-1].file_id
-        file = await bot.get_file(file_id)
-        file_path = file.file_path
-        # Скачиваем файл
-        destination = f"{file_id}.jpg"
-        await bot.download_file(file_path, destination)
-        s3.upload_file(destination, 'resenderbot-media', destination)
-        photo_link = 'https://storage.yandexcloud.net/resenderbot-media/' + destination
-        photo_id = photo_container(text_thread, photo_link)
-        post_thread(photo_id)
-        os.remove(destination)
-    else:
-        text_id = text_container(text_thread)
-        post_thread(text_id)
-    await callback.answer("Пост опубликован в Threads")
+        if callback.message.caption:
+            file_id = callback.message.photo[-1].file_id
+            file = await bot.get_file(file_id)
+            file_path = file.file_path
+            # Скачиваем файл
+            destination = f"{file_id}.jpg"
+            await bot.download_file(file_path, destination)
+            s3.upload_file(destination, 'resenderbot-media', destination)
+            photo_link = 'https://storage.yandexcloud.net/resenderbot-media/' + destination
+            photo_id = photo_container(text_thread, photo_link)
+            post_thread(photo_id)
+            os.remove(destination)
+        else:
+            text_id = text_container(text_thread)
+            post_thread(text_id)
+        await callback.answer("Пост опубликован в Threads")
+        await callback.message.answer("Пост опубликован в Threads")
+    except Exception as e:
+        print(e)
+        await callback.answer("Ошибка публикации в Threads")
+        await callback.message.answer(f"Ошибка публикации в Threads: {e}")
 
 def rewrite_message(message):
     api_key = MISTRAL_API_KEY
@@ -94,7 +100,7 @@ def text_container(message):
         'Authorization': f'Bearer {THREADS_ACCESS_TOKEN}'
     }
     try:
-        response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=TEXT', headers=headers)
+        response = r.post(f'https://graph.threads.net/me/threads?media_type=TEXT&text={message}', headers=headers)
         response_data = json.loads(response.text)
     except Exception as e:
         print(e)
@@ -109,7 +115,7 @@ def photo_container(message, message_url, is_carousel=False):
         is_carousel_param = '&is_carousel=true'
     else:
         is_carousel_param = ''
-    response = r.post(f'https://graph.threads.net/me/threads?text={message}&media_type=IMAGE&image_url={message_url}{is_carousel_param}', headers=headers)
+    response = r.post(f'https://graph.threads.net/me/threads?media_type=IMAGE&image_url={message_url}{is_carousel_param}&text={message}', headers=headers)
     response_data = json.loads(response.text)
     return response_data['id']
 
